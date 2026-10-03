@@ -1,0 +1,44 @@
+
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: webhook_system
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:pass@postgres:5432/webhook_system
+      REDIS_URL: redis://redis:6379
+      GEMINI_API_KEY:  ${GEMINI_API_KEY}
+      NODE_ENV: production
+      PORT: 3000
+    depends_on:
+      - postgres
+      - redis
+
+  worker:
+    build: .
+    command: npx tsx src/worker.ts
+    environment:
+      DATABASE_URL: postgresql://postgres:pass@postgres:5432/webhook_system
+      REDIS_URL: redis://redis:6379
+      GEMINI_API_KEY:  ${GEMINI_API_KEY}
+      NODE_ENV: production
+      PORT: 3000
+    depends_on:
+      - postgres
+      - redis
+
+  

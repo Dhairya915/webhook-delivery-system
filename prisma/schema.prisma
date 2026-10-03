@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DeliveryStatus {
+  pending
+  success
+  failed
+  dead_letter
+}
+
+model Subscription {
+  id                    Int      @id @default(autoincrement())
+  url                   String
+  secret                String
+  events                String[]
+  active                Boolean  @default(true)
+  consecutiveFailures   Int @default(0)
+  createdAt             DateTime @default(now())
+
+  deliveries Delivery[]
+}
+
+model Event {
+  id        Int      @id @default(autoincrement())
+  type      String
+  payload   Json
+  createdAt DateTime @default(now())
+
+  deliveries Delivery[]
+}
+
+model Delivery {
+  id             Int            @id @default(autoincrement())
+  event          Event          @relation(fields: [eventId], references: [id])
+  eventId        Int
+  subscription   Subscription   @relation(fields: [subscriptionId], references: [id])
+  subscriptionId Int
+  status         DeliveryStatus @default(pending)
+  attempts       Int            @default(0)
+  responseCode   Int?
+  aiSummary      String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @default(now())
+
+  @@unique([eventId, subscriptionId])
+}
+
